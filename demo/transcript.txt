@@ -1,0 +1,67 @@
+# weightpin demo - real CLI output
+# (live-model is the REAL tiny GPT-2 safetensors file from
+#  Hugging Face, pulled 2026-11-21; the tampered copy is a
+#  copy of it with one byte flipped; the demo-model files
+#  are synthetic fixtures - see examples/*/README.md)
+
+$ weightpin pin live-model --lockfile demo.lock.json
+pinned 1 weight file(s), 453864 bytes
+lockfile: demo.lock.json
+  model.safetensors  8111d5afb071  453864
+pinned-at: 2026-11-21T07:11:11.661Z
+
+$ weightpin check live-model --lockfile demo.lock.json
+verdict: CLEAN
+summary: 1 unchanged, 0 changed, 0 missing, 0 new
+A hash detects any byte change. It cannot say why the weights changed or whether the change is benign - that judgement stays human.
+
+# Flip one byte in a COPY of the real weights and check again
+$ weightpin check model-tampered --lockfile demo.lock.json
+verdict: CHANGED
+  CHANGED model.safetensors  8111d5afb071 -> 13c74228617d  453864 -> 453864
+summary: 0 unchanged, 1 changed, 0 missing, 0 new
+A hash detects any byte change. It cannot say why the weights changed or whether the change is benign - that judgement stays human.
+exit: 1
+
+$ weightpin diff model-tampered --lockfile demo.lock.json
+verdict: CHANGED
+path  old-sha256  new-sha256  old-size  new-size  status
+model.safetensors  8111d5afb071  13c74228617d  453864  453864  changed
+summary: 0 unchanged, 1 changed, 0 missing, 0 new
+A hash detects any byte change. It cannot say why the weights changed or whether the change is benign - that judgement stays human.
+exit: 1
+
+$ weightpin explain limits
+Honest limits - what a hash can and cannot tell you
+
+A hash detects ANY byte change in a weight file. It cannot say
+WHY the weights changed, or whether the change is benign.
+A deliberate self-rewrite, a bug, a bad deploy and a malicious
+edit all look identical to weightpin: CHANGED. That judgement
+stays human.
+
+A hash also cannot tell you:
+  - whether the first pin was of good weights (pin from a
+    known-good source and record the provenance);
+  - whether weights changed only in memory and were never
+    written to disk (weightpin checks deployed files);
+  - who published the weights (that is provenance, and needs
+    signing - see Sigstore model-signing);
+  - whether behaviour changed while the weights stayed the
+    same (that is behaviour drift - see modeldrift).
+
+And the lockfile itself is only as trustworthy as its storage:
+if an attacker can rewrite weights, they can rewrite the
+lockfile too. Commit the lockfile to git, protect it with
+review and branch protection, and treat a lockfile change as
+a change that needs review.
+
+Source: weightpin design notes (checked 2026-11-21).
+
+$ weightpin init fresh-model --lockfile fresh.lock.json
+pinned 5 weight file(s) from fresh-model
+lockfile: fresh.lock.json
+
+CI gate - add this to your deploy job:
+  weightpin check ./models/qwen --lockfile weightpin.lock.json
+The check exits 0 when clean and 1 on any drift, so it fails the build.
