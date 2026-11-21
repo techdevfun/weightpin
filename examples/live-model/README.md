@@ -11,7 +11,7 @@ Hugging Face on 2026-11-21. It is the live evidence for weightpin:
 - Size: 453,864 bytes
 - sha256: `8111d5afb0715dbf5a31396d31432cb56370ba23f6650a035ea0fc8a20b4e500`
 - Contents (verified locally by parsing the safetensors header):
-  59 tensors, all F32 (transformer blocks h.0-h.4, ln_f, wpe, wte)
+  64 tensors, all F32 (transformer blocks h.0-h.4, ln_f, wpe, wte)
 
 `config.json` comes from the same repo and the same pull. It is not a
 weight file, so weightpin ignores it when hashing - that is the point:
